@@ -63,7 +63,7 @@ function renderAction(action, index) {
   if (action.type === "move") fields = [numberField("X 总位移", "x", action.x, -500, 500), numberField("Y 总位移", "y", action.y, -500, 500), numberField("滚轮", "wheel", action.wheel, -127, 127), numberField("横向", "pan", action.pan, -127, 127), secondsField("移动时长 s", "durationMs", action.durationMs, 0, 60000)].join("");
   if (action.type === "mouseClick") fields = [numberField("按钮掩码", "buttons", action.buttons, 1, 31), secondsField("按住 s", "holdMs", action.holdMs, 10, 1000)].join("");
   if (action.type === "keyboardClick") fields = [numberField("修饰键", "modifiers", action.modifiers, 0, 255), numberField("HID Usage", "usage", action.usage, 1, 255), secondsField("按住 s", "holdMs", action.holdMs, 10, 1000)].join("");
-  row.innerHTML = `<div class="action-title"><strong>${labels[action.type]}</strong><span>动作 ${index + 1}</span></div><div class="action-fields">${fields}</div><div class="action-buttons"><input type="button" data-action="up" title="上移" value="↑"> <input type="button" data-action="down" title="下移" value="↓"> <input type="button" data-action="delete" title="删除" value="删除"></div>`;
+  row.innerHTML = `<div class="action-title"><strong>${labels[action.type]}</strong><span>动作 ${index + 1}</span></div><div class="action-fields">${fields}</div><div class="action-buttons"><button data-action="up" title="上移">↑</button><button data-action="down" title="下移">↓</button><button data-action="delete" title="删除">删除</button></div>`;
   return row;
 }
 
@@ -127,14 +127,14 @@ async function connect() {
   client = new HidPilotClient(currentDevice);
   await client.open();
   elements.connection.textContent = `${currentDevice.productName ?? "HIDPilot"} 已连接`;
-  elements.connect.value = "重新连接";
+  elements.connect.textContent = "重新连接";
   await refresh();
 }
 
 async function perform(label, task) {
   addLog(`开始：${label}`);
   try {
-    [...document.querySelectorAll('input[type="button"]')].forEach((button) => { button.disabled = true; });
+    [...document.querySelectorAll("button")].forEach((button) => { button.disabled = true; });
     setNotice(`${label}…`);
     await task();
     setNotice(`${label}完成。`, "ok");
@@ -143,12 +143,12 @@ async function perform(label, task) {
     setNotice(error.message, "error");
     addLog(`${error.message === "已取消操作" ? "取消" : "失败"}：${label} — ${error.message}`, error.message === "已取消操作" ? "warning" : "error");
   } finally {
-    [...document.querySelectorAll('input[type="button"]')].forEach((button) => { button.disabled = false; });
+    [...document.querySelectorAll("button")].forEach((button) => { button.disabled = false; });
   }
 }
 
 elements.actions.addEventListener("click", (event) => {
-  const button = event.target.closest('input[type="button"][data-action]');
+  const button = event.target.closest("button[data-action]");
   if (!button) return;
   try {
     const row = button.closest(".action");
