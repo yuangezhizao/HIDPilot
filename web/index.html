@@ -15,7 +15,7 @@
           <h1>HIDPilot 配置器</h1>
           <p>编辑键鼠动作序列，先试运行，再临时应用或保存到设备 Flash。</p>
         </div>
-        <button id="connect" class="primary">连接设备</button>
+        <button id="connect">连接设备</button>
       </header>
 
       <section class="status-grid" aria-live="polite">
@@ -52,6 +52,10 @@
         <div>
           <h2>执行与保存</h2>
           <p>“临时应用”仅保留到下次重启；“保存到 Flash”采用双槽掉电保护。</p>
+          <details class="storage-help">
+            <summary>什么是双槽掉电保护？</summary>
+            <p>Flash 中保留两个独立的 4 KiB 配置槽。保存时只擦写非活动槽，完整回读并通过格式、CRC 和代际校验后才切换活动槽；若中途掉电，原活动槽仍保持有效。启动时选择代际较新的有效槽，一个槽损坏时使用另一个，两槽都无效时恢复默认配置。</p>
+          </details>
         </div>
         <div class="button-row">
           <button id="refresh">从设备读取</button>
@@ -69,6 +73,11 @@
       </section>
 
       <footer>相对移动单位不等于屏幕像素，实际位移受操作系统指针加速影响。Safari 与 Firefox 当前不支持 WebHID。</footer>
+
+      <section class="log-section" aria-labelledby="log-heading">
+        <div class="log-heading"><h2 id="log-heading">操作日志</h2><button id="clear-log" type="button">清空日志</button></div>
+        <div id="activity-log" class="activity-log" role="log" aria-live="polite" aria-relevant="additions"></div>
+      </section>
     </main>
     <script type="module" src="app.js"></script>
   </body>
