@@ -1,0 +1,112 @@
+:root {
+  font-family: Arial, "Open Sans", sans-serif;
+  color: #204056;
+  background: #fff;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { min-height: 100vh; margin: 0; background: #fff; }
+main { width: 100%; margin: 0 auto; padding: 10px 8px 32px; }
+h1, h2, p { margin-top: 0; }
+h1 { margin: 0 0 7px; color: #0e2431; font-size: 28px; font-weight: 400; text-align: center; }
+h2 { margin-bottom: 6px; color: #0e2431; font-size: 18px; font-weight: 600; }
+button, select, input { font: inherit; }
+
+.hero { position: relative; min-height: 70px; padding: 4px 170px 10px; text-align: center; }
+.hero p { margin-bottom: 3px; color: #526a79; }
+.hero .eyebrow { color: #526a79; font-size: 12px; letter-spacing: .08em; }
+.hero > button { position: absolute; right: 8px; top: 13px; }
+
+button {
+  border: 0;
+  border-radius: 4px;
+  background: #1a73e8;
+  color: #fff;
+  padding: 8px 20px;
+  cursor: pointer;
+  box-shadow: 0 3px 1px -2px #0003, 0 2px 2px #00000024, 0 1px 5px #0000001f;
+}
+button:hover { background: #1765cc; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid #1a73e8; outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: .6; }
+button.primary { background: #4caf50; }
+button.primary:hover { background: #449d48; }
+button.danger { background: #f44336; }
+button.danger:hover { background: #dc382e; }
+select { border: 1px solid #9aa7af; border-radius: 2px; background: #fff; color: #0e2431; padding: 6px 32px 6px 8px; cursor: pointer; }
+select:hover { border-color: #1a73e8; }
+
+.status-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 0 8px; background: #eef6fc; }
+.status-grid article { min-width: 0; padding: 9px 12px; border-right: 1px solid #d5e3ee; text-align: center; }
+.status-grid article:last-child { border-right: 0; }
+.status-grid span { display: block; margin-bottom: 3px; color: #607888; font-size: 12px; }
+.status-grid strong { display: block; overflow: hidden; color: #0e2431; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+
+.notice { min-height: 30px; margin: 0; background: #eef6fc; color: #204056; padding: 6px 10px; font-style: italic; text-align: center; }
+.notice.ok { background: #e8f5e9; color: #256029; }
+.notice.error { background: #ffebee; color: #a12820; }
+
+.panel, .log-section { margin: 0; padding: 17px 6px 15px; box-shadow: 0 10px 10px -10px #8c8b8b inset; }
+.settings { display: flex; align-items: end; gap: 26px; }
+.settings label:not(.toggle), .field { display: grid; gap: 3px; color: #204056; font-size: 14px; }
+input[type="number"] { width: 150px; margin: 0; border: 1px solid #9aa7af; border-radius: 2px; background: #fff; color: #0e2431; padding: 5px 7px; }
+.toggle { display: flex; align-items: center; gap: 7px; min-height: 31px; font-weight: 600; }
+.toggle input { width: 18px; height: 18px; accent-color: #1a73e8; }
+
+.section-heading, .controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.section-heading > div:first-child, .controls > div:first-child { margin-right: auto; }
+.section-heading h2 { margin-bottom: 0; }
+.section-heading .eyebrow { margin-bottom: 4px; color: #607888; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.section-heading .action-help { max-width: 760px; margin: 5px 0 0; color: #526a79; font-size: 13px; line-height: 1.45; }
+.add-action-row { display: flex; align-items: center; gap: 6px; }
+.actions { display: grid; gap: 8px; margin-top: 14px; }
+.empty { border: 1px dashed #9eb1bd; color: #607888; padding: 20px; text-align: center; }
+.action { display: grid; grid-template-columns: minmax(130px, .7fr) 2.5fr auto; align-items: end; gap: 12px; border-left: 4px solid #1a73e8; background: #f8fbfd; padding: 10px 12px; }
+.action-title { align-self: center; }
+.action-title strong { display: block; color: #0e2431; }
+.action-title span { color: #6f8390; font-size: 12px; }
+.action-fields { display: flex; flex-wrap: wrap; gap: 9px; }
+.action-fields input { width: 104px; }
+.action-buttons { display: flex; gap: 5px; }
+.action-buttons button { min-width: 36px; padding: 6px 9px; }
+.button-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.controls p { margin-bottom: 5px; color: #526a79; }
+.controls .button-row { display: grid; flex: 0 0 auto; grid-template-columns: repeat(3, max-content); gap: 6px; }
+.maintenance .button-row { grid-template-columns: repeat(2, max-content); }
+
+.storage-help { max-width: 760px; color: #526a79; font-size: 13px; line-height: 1.5; }
+.storage-help summary { width: fit-content; color: #1a73e8; cursor: pointer; }
+.storage-help p { margin: 7px 0 0; padding-left: 16px; }
+footer { padding: 14px 6px; box-shadow: 0 10px 10px -10px #8c8b8b inset; color: #526a79; font-size: 13px; }
+
+.log-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.log-heading h2 { margin: 0; }
+.activity-log { min-height: 92px; max-height: 260px; margin-top: 8px; overflow: auto; background: #f8fbfd; padding: 8px 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.55; }
+.log-entry { display: grid; grid-template-columns: 86px 1fr; gap: 9px; }
+.log-entry time { color: #6f8390; }
+.log-entry.success span { color: #2e7d32; }
+.log-entry.warning span { color: #a46500; }
+.log-entry.error span { color: #c62828; }
+
+@media (max-width: 1100px) {
+  .controls { align-items: stretch; flex-direction: column; }
+  .controls > div:first-child { margin-right: 0; }
+  .controls .button-row { justify-content: start; }
+}
+
+@media (max-width: 760px) {
+  main { padding-right: 6px; padding-left: 6px; }
+  .hero { padding: 4px 0 12px; }
+  .hero > button { position: static; margin-top: 9px; }
+  .status-grid { grid-template-columns: repeat(2, 1fr); }
+  .status-grid article:nth-child(2) { border-right: 0; }
+  .status-grid article:nth-child(-n + 2) { border-bottom: 1px solid #d5e3ee; }
+  .section-heading, .controls, .settings { align-items: stretch; flex-direction: column; }
+  .section-heading > div:first-child, .controls > div:first-child { margin-right: 0; }
+  .add-action-row { justify-content: flex-start; }
+  .action { grid-template-columns: 1fr; }
+  .controls .button-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .controls .button-row button { width: 100%; }
+  .activity-log { max-height: 220px; }
+}
