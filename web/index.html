@@ -21,6 +21,7 @@
 
       <p id="notice" class="notice">请使用桌面版 Chrome 或 Edge，并通过 localhost 打开此页面。</p>
 
+      <hr>
       <section class="panel">
         <h2>1. 周期设置</h2>
         <div class="settings">
@@ -29,6 +30,7 @@
         </div>
       </section>
 
+      <hr>
       <section class="panel">
         <div class="section-heading">
           <div><h2>2. 动作序列 <small>（最多 32 项）</small></h2><p class="action-help">X/Y 是总 HID 位移，固件会自动拆分超过 127 的值。等距往返应使用相同移动时长，否则系统指针加速会造成屏幕距离不同。</p></div>
@@ -43,6 +45,7 @@
         <div id="actions" class="actions"></div>
       </section>
 
+      <hr>
       <section class="panel controls">
         <div>
           <h2>3. 执行与保存</h2>
@@ -62,11 +65,13 @@
         </div>
       </section>
 
+      <hr>
       <section class="panel controls">
         <div><h2>4. 设备维护</h2><p>重启会短暂断开 WebHID；BOOTSEL 用于重新烧录 UF2。</p></div>
         <div class="button-row"><input id="reboot" type="button" value="重启应用"><input id="bootsel" type="button" value="重启到 BOOTSEL"></div>
       </section>
 
+      <hr>
       <footer>相对移动单位不等于屏幕像素，实际位移受操作系统指针加速影响。Safari 与 Firefox 当前不支持 WebHID。</footer>
 
       <hr>

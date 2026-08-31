@@ -22,7 +22,7 @@ input[type="button"] { height: 21.5px; }
 .notice::before { content: "状态："; }
 .notice.ok, .notice.error { color: inherit; }
 
-.panel { margin: 0 0 24px; }
+.panel { margin: 0; padding-bottom: 8px; }
 .settings label { margin-right: 24px; }
 .settings input, .field input { margin-left: 6px; }
 
