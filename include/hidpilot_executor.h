@@ -43,8 +43,8 @@ typedef struct {
     uint16_t move_step_count;
     uint16_t move_step_index;
     uint8_t action_index;
-    int8_t move_target_x;
-    int8_t move_target_y;
+    int16_t move_target_x;
+    int16_t move_target_y;
     int8_t move_target_wheel;
     int8_t move_target_pan;
     bool mounted;

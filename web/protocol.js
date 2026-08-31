@@ -44,8 +44,8 @@ export function validateConfig(config) {
     if (!actionTypes.has(action.type)) throw new Error(`${prefix} 类型无效`);
     if (action.type === "delay") integerInRange(action.durationMs, 1, 60000, `${prefix} 延时`);
     if (action.type === "move") {
-      integerInRange(action.x, -127, 127, `${prefix} X`);
-      integerInRange(action.y, -127, 127, `${prefix} Y`);
+      integerInRange(action.x, -500, 500, `${prefix} X`);
+      integerInRange(action.y, -500, 500, `${prefix} Y`);
       integerInRange(action.wheel, -127, 127, `${prefix} 滚轮`);
       integerInRange(action.pan, -127, 127, `${prefix} 横向滚轮`);
       integerInRange(action.durationMs, 0, 60000, `${prefix} 移动时长`);
@@ -75,6 +75,15 @@ export function defaultConfig() {
   };
 }
 
+export function hasAccelerationSensitiveReturn(config) {
+  validateConfig(config);
+  const moves = config.actions.filter((action) => action.type === "move");
+  return moves.some((forward, index) => moves.slice(index + 1).some((backward) =>
+    (forward.x !== 0 || forward.y !== 0 || forward.wheel !== 0 || forward.pan !== 0) &&
+    forward.x === -backward.x && forward.y === -backward.y && forward.wheel === -backward.wheel &&
+    forward.pan === -backward.pan && forward.durationMs !== backward.durationMs));
+}
+
 export function encodeConfig(config) {
   validateConfig(config);
   const bytes = new Uint8Array(12 + config.actions.length * 8);
@@ -90,8 +99,16 @@ export function encodeConfig(config) {
       view.setUint32(offset + 4, action.durationMs, true);
     } else if (action.type === "move") {
       bytes[offset] = 2;
-      view.setInt8(offset + 1, action.x);
-      view.setInt8(offset + 2, action.y);
+      if (action.x < -127 || action.x > 127 || action.y < -127 || action.y > 127) {
+        const rawX = action.x & 0x3ff;
+        const rawY = action.y & 0x3ff;
+        bytes[offset + 1] = rawX & 0xff;
+        bytes[offset + 2] = rawY & 0xff;
+        bytes[offset + 7] = 0x80 | ((rawX >> 8) & 0x03) | ((rawY >> 6) & 0x0c);
+      } else {
+        view.setInt8(offset + 1, action.x);
+        view.setInt8(offset + 2, action.y);
+      }
       view.setInt8(offset + 3, action.wheel);
       view.setInt8(offset + 4, action.pan);
       view.setUint16(offset + 5, action.durationMs, true);
@@ -125,8 +142,16 @@ export function decodeConfig(data) {
       if (wire[1] || wire[2] || wire[3]) throw new Error("延时动作保留字段非零");
       config.actions.push({ type: "delay", durationMs: view.getUint32(offset + 4, true) });
     } else if (wire[0] === 2) {
-      if (wire[7]) throw new Error("移动动作保留字段非零");
-      config.actions.push({ type: "move", x: view.getInt8(offset + 1), y: view.getInt8(offset + 2), wheel: view.getInt8(offset + 3), pan: view.getInt8(offset + 4), durationMs: view.getUint16(offset + 5, true) });
+      if ((wire[7] & 0x70) !== 0 || (wire[7] !== 0 && (wire[7] & 0x80) === 0)) throw new Error("移动动作扩展标记无效");
+      let x = view.getInt8(offset + 1);
+      let y = view.getInt8(offset + 2);
+      if (wire[7] & 0x80) {
+        const rawX = wire[1] | ((wire[7] & 0x03) << 8);
+        const rawY = wire[2] | ((wire[7] & 0x0c) << 6);
+        x = rawX >= 0x200 ? rawX - 0x400 : rawX;
+        y = rawY >= 0x200 ? rawY - 0x400 : rawY;
+      }
+      config.actions.push({ type: "move", x, y, wheel: view.getInt8(offset + 3), pan: view.getInt8(offset + 4), durationMs: view.getUint16(offset + 5, true) });
     } else if (wire[0] === 3) {
       if (wire[4] || wire[5] || wire[6] || wire[7]) throw new Error("点击动作保留字段非零");
       config.actions.push({ type: "mouseClick", buttons: wire[1], holdMs: view.getUint16(offset + 2, true) });

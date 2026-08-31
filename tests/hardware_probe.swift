@@ -86,13 +86,15 @@ private func pacedConfig() -> [UInt8] {
     data[4] = 0x88
     data[5] = 0x13
     data[12] = 2
-    data[13] = 40
-    data[17] = 0xd0
-    data[18] = 0x07
+    data[13] = 0xf4
+    data[17] = 0xe8
+    data[18] = 0x03
+    data[19] = 0x81
     data[20] = 2
-    data[21] = UInt8(bitPattern: -40)
-    data[25] = 0xd0
-    data[26] = 0x07
+    data[21] = 0x0c
+    data[25] = 0xe8
+    data[26] = 0x03
+    data[27] = 0x82
     return data
 }
 
@@ -337,8 +339,8 @@ private func samplePacedRunOnce(_ probe: HIDProbe) throws {
     CGWarpMouseCursorPosition(center)
     print(String(format: "paced_run baseline_x=%.1f max_x=%.1f max_at_ms=%.1f last_change_ms=%.1f final_x=%.1f", baseline.x, maximumX, maximumAt * 1000, lastChangeAt * 1000, final.x))
     guard maximumX > baseline.x + 5 else { throw ProbeError("缓速动作未产生可观测正向位移") }
-    guard maximumAt > 1.5, maximumAt < 2.6 else { throw ProbeError("正向缓速移动时长不在预期范围") }
-    guard lastChangeAt > 3.5, lastChangeAt < 4.8 else { throw ProbeError("反向缓速移动时长不在预期范围") }
+    guard maximumAt > 0.7, maximumAt < 1.6 else { throw ProbeError("正向缓速移动时长不在预期范围") }
+    guard lastChangeAt > 1.7, lastChangeAt < 2.8 else { throw ProbeError("反向缓速移动时长不在预期范围") }
     guard abs(final.x - baseline.x) < 5 else { throw ProbeError("缓速往返动作结束后未回到起点") }
 }
 
@@ -381,6 +383,7 @@ private func runAcceptance() throws {
 
 private func verifyPacedPersistence() throws {
     var probe: HIDProbe? = try HIDProbe()
+    let original = try probe!.readConfig()
     let paced = pacedConfig()
     try probe!.stage(paced, finalCommand: .applySave)
     _ = try probe!.request(.rebootApplication)
@@ -388,12 +391,12 @@ private func verifyPacedPersistence() throws {
     probe = try waitForReboot()
     guard try probe!.readConfig() == paced else { throw ProbeError("移动时长配置重启后未保持") }
     print("paced_persisted \(statusSummary(try probe!.request(.status)))")
-    _ = try probe!.request(.restoreDefault)
+    try probe!.stage(original, finalCommand: .applySave)
     _ = try probe!.request(.rebootApplication)
     probe = nil
     probe = try waitForReboot()
-    guard try probe!.readConfig() == defaultConfig() else { throw ProbeError("持久化验收后未恢复默认配置") }
-    print("default_restored \(statusSummary(try probe!.request(.status)))")
+    guard try probe!.readConfig() == original else { throw ProbeError("持久化验收后未恢复原配置") }
+    print("original_restored \(statusSummary(try probe!.request(.status)))")
 }
 
 private func monitorCycles(_ probe: HIDProbe) throws {

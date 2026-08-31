@@ -26,6 +26,7 @@ typedef struct {
     int32_t total_wheel;
     int32_t total_pan;
     uint32_t moving_mouse_count;
+    uint8_t maximum_abs_x;
     bool allow_send;
 } fake_hid_t;
 
@@ -43,6 +44,8 @@ static bool fake_mouse(void *context, uint8_t buttons, int8_t x, int8_t y, int8_
     if (!fake->allow_send) return false;
     ++fake->mouse_count;
     if (x != 0 || y != 0 || wheel != 0 || pan != 0) ++fake->moving_mouse_count;
+    const int absolute_x = x < 0 ? -(int)x : (int)x;
+    if ((uint8_t)absolute_x > fake->maximum_abs_x) fake->maximum_abs_x = (uint8_t)absolute_x;
     fake->last_buttons = buttons;
     fake->last_x = x;
     fake->last_y = y;
@@ -109,8 +112,8 @@ static void test_config(void) {
     config.actions[0].type = HIDPILOT_ACTION_DELAY;
     config.actions[0].value.delay.duration_ms = 60000u;
     config.actions[1].type = HIDPILOT_ACTION_MOUSE_MOVE;
-    config.actions[1].value.move.x = -127;
-    config.actions[1].value.move.y = 127;
+    config.actions[1].value.move.x = -500;
+    config.actions[1].value.move.y = 500;
     config.actions[1].value.move.wheel = -127;
     config.actions[1].value.move.pan = 127;
     config.actions[1].value.move.duration_ms = 60000u;
@@ -125,6 +128,9 @@ static void test_config(void) {
     config.actions[1].value.move.duration_ms = 60001u;
     assert(hidpilot_config_validate(&config) == HIDPILOT_CONFIG_ERR_ACTION_VALUE);
     config.actions[1].value.move.duration_ms = 60000u;
+    config.actions[1].value.move.x = 501;
+    assert(hidpilot_config_validate(&config) == HIDPILOT_CONFIG_ERR_ACTION_VALUE);
+    config.actions[1].value.move.x = -500;
     config.actions[2].value.mouse_click.buttons = 32u;
     assert(hidpilot_config_validate(&config) == HIDPILOT_CONFIG_ERR_ACTION_VALUE);
     config.actions[2].value.mouse_click.buttons = 1u;
@@ -144,6 +150,16 @@ static void test_config(void) {
     assert(decoded.actions[0].value.move.duration_ms == 60000u);
     encoded[19] = 1u;
     assert(hidpilot_config_decode(&decoded, encoded, duration_length) == HIDPILOT_CONFIG_ERR_RESERVED);
+
+    hidpilot_config_default(&config);
+    config.actions[0].value.move.x = 500;
+    config.actions[0].value.move.y = -500;
+    const size_t extended_length = hidpilot_config_encode(&config, encoded, sizeof(encoded));
+    assert((encoded[19] & 0x80u) != 0u);
+    assert(hidpilot_config_decode(&decoded, encoded, extended_length) == HIDPILOT_CONFIG_OK);
+    assert(decoded.actions[0].value.move.x == 500 && decoded.actions[0].value.move.y == -500);
+    encoded[19] |= 0x10u;
+    assert(hidpilot_config_decode(&decoded, encoded, extended_length) == HIDPILOT_CONFIG_ERR_RESERVED);
 }
 
 static void finish_default_run(hidpilot_executor_t *executor) {
@@ -246,8 +262,8 @@ static void test_executor(void) {
     move_config.repeat_interval_ms = 1000u;
     move_config.action_count = 1u;
     move_config.actions[0].type = HIDPILOT_ACTION_MOUSE_MOVE;
-    move_config.actions[0].value.move.x = 100;
-    move_config.actions[0].value.move.y = -50;
+    move_config.actions[0].value.move.x = 500;
+    move_config.actions[0].value.move.y = -500;
     move_config.actions[0].value.move.wheel = 10;
     move_config.actions[0].value.move.pan = -10;
     move_config.actions[0].value.move.duration_ms = 10u;
@@ -264,8 +280,9 @@ static void test_executor(void) {
     assert(hidpilot_executor_activity_active(&move_executor));
     for (uint32_t tick = 5u; tick <= 14u; ++tick) hidpilot_executor_tick(&move_executor, tick);
     assert(move_fake.moving_mouse_count == 10u);
-    assert(move_fake.total_x == 100 && move_fake.total_y == -50);
+    assert(move_fake.total_x == 500 && move_fake.total_y == -500);
     assert(move_fake.total_wheel == 10 && move_fake.total_pan == -10);
+    assert(move_fake.maximum_abs_x <= 127u);
     assert(move_executor.state == HIDPILOT_EXECUTOR_ACTION);
     hidpilot_executor_tick(&move_executor, 15u);
     assert(move_executor.completed_runs == 1u);
@@ -273,6 +290,21 @@ static void test_executor(void) {
     hidpilot_executor_tick(&move_executor, 16u);
     hidpilot_executor_tick(&move_executor, 17u);
     assert(!hidpilot_executor_activity_active(&move_executor));
+
+    move_config.actions[0].value.move.duration_ms = 0u;
+    fake_hid_t instant_fake = {.allow_send = true};
+    hidpilot_executor_t instant_executor = make_executor(&move_config, &instant_fake);
+    hidpilot_executor_mount(&instant_executor, 0u);
+    hidpilot_executor_tick(&instant_executor, 0u);
+    hidpilot_executor_tick(&instant_executor, 1u);
+    assert(hidpilot_executor_run_once(&instant_executor, &move_config, 2u));
+    hidpilot_executor_tick(&instant_executor, 2u);
+    hidpilot_executor_tick(&instant_executor, 3u);
+    hidpilot_executor_tick(&instant_executor, 4u);
+    for (uint32_t tick = 5u; tick <= 8u; ++tick) hidpilot_executor_tick(&instant_executor, tick);
+    assert(instant_fake.moving_mouse_count == 4u);
+    assert(instant_fake.total_x == 500 && instant_fake.total_y == -500);
+    assert(instant_fake.maximum_abs_x == 125u);
 }
 
 static void test_flash_records(void) {

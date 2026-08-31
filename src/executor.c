@@ -103,9 +103,8 @@ static void start_cycle(hidpilot_executor_t *executor, uint32_t now_ms) {
     executor->state = HIDPILOT_EXECUTOR_ACTION;
 }
 
-static uint16_t move_magnitude(int8_t value) {
-    const int16_t wide_value = value;
-    return (uint16_t)(wide_value < 0 ? -wide_value : wide_value);
+static uint16_t move_magnitude(int16_t value) {
+    return (uint16_t)(value < 0 ? -value : value);
 }
 
 static void begin_mouse_move(hidpilot_executor_t *executor, const hidpilot_action_t *action, uint32_t now_ms) {
@@ -125,7 +124,9 @@ static void begin_mouse_move(hidpilot_executor_t *executor, const hidpilot_actio
 
     executor->move_start_ms = now_ms;
     executor->move_duration_ms = action->value.move.duration_ms;
-    executor->move_step_count = maximum < action->value.move.duration_ms ? maximum : action->value.move.duration_ms;
+    const uint16_t minimum_steps = (uint16_t)((maximum + 126u) / 127u);
+    const uint16_t timed_steps = maximum < action->value.move.duration_ms ? maximum : action->value.move.duration_ms;
+    executor->move_step_count = minimum_steps > timed_steps ? minimum_steps : timed_steps;
     executor->move_step_index = 0u;
     executor->move_sent_x = 0;
     executor->move_sent_y = 0;
@@ -182,8 +183,9 @@ static void run_action(hidpilot_executor_t *executor, uint32_t now_ms) {
             executor->state = HIDPILOT_EXECUTOR_DELAY;
             break;
         case HIDPILOT_ACTION_MOUSE_MOVE:
-            if (action->value.move.duration_ms == 0u) {
-                if (executor->io.send_mouse(executor->io.context, 0u, action->value.move.x, action->value.move.y,
+            if (action->value.move.duration_ms == 0u && action->value.move.x >= -127 && action->value.move.x <= 127 &&
+                action->value.move.y >= -127 && action->value.move.y <= 127) {
+                if (executor->io.send_mouse(executor->io.context, 0u, (int8_t)action->value.move.x, (int8_t)action->value.move.y,
                                             action->value.move.wheel, action->value.move.pan)) {
                     ++executor->action_index;
                 }

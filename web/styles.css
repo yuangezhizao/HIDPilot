@@ -37,6 +37,7 @@ input[type="number"] { width: 150px; border: 1px solid #c8d2ca; border-radius: 9
 .section-heading, .controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .section-heading > div { margin-right: auto; }
 .section-heading h2 { margin-bottom: 0; }
+.section-heading .action-help { max-width: 610px; margin: 8px 0 0; color: #5d6961; font-size: .78rem; line-height: 1.5; }
 .actions { display: grid; gap: 10px; margin-top: 18px; }
 .empty { border: 1px dashed #bdc9bf; border-radius: 12px; color: #738078; padding: 24px; text-align: center; }
 .action { display: grid; grid-template-columns: minmax(150px, .9fr) 2.2fr auto; align-items: end; gap: 14px; border: 1px solid #dbe3dc; border-radius: 13px; background: #fbfdfb; padding: 14px; }

@@ -12,6 +12,8 @@
 #define HIDPILOT_CONFIG_MAX_SIZE (HIDPILOT_CONFIG_HEADER_SIZE + HIDPILOT_MAX_ACTIONS * HIDPILOT_ACTION_WIRE_SIZE)
 #define HIDPILOT_REPEAT_MIN_MS 1u
 #define HIDPILOT_REPEAT_MAX_MS 86400000u
+#define HIDPILOT_MOVE_AXIS_MIN (-500)
+#define HIDPILOT_MOVE_AXIS_MAX 500
 
 typedef enum {
     HIDPILOT_ACTION_DELAY = 1,
@@ -27,8 +29,8 @@ typedef struct {
             uint32_t duration_ms;
         } delay;
         struct {
-            int8_t x;
-            int8_t y;
+            int16_t x;
+            int16_t y;
             int8_t wheel;
             int8_t pan;
             uint16_t duration_ms;

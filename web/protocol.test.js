@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Command, createFrame, crc32, decodeConfig, defaultConfig, encodeConfig, parseResponse, validateConfig } from "./protocol.js";
+import { Command, createFrame, crc32, decodeConfig, defaultConfig, encodeConfig, hasAccelerationSensitiveReturn, parseResponse, validateConfig } from "./protocol.js";
 
 test("CRC-32/ISO-HDLC 标准向量", () => {
   assert.equal(crc32(new TextEncoder().encode("123456789")), 0xcbf43926);
@@ -19,7 +19,7 @@ test("完整动作集合 round-trip", () => {
     repeatIntervalMs: 123456,
     actions: [
       { type: "delay", durationMs: 60000 },
-      { type: "move", x: -127, y: 127, wheel: -1, pan: 1, durationMs: 60000 },
+      { type: "move", x: -500, y: 500, wheel: -1, pan: 1, durationMs: 60000 },
       { type: "mouseClick", buttons: 31, holdMs: 1000 },
       { type: "keyboardClick", modifiers: 255, usage: 4, holdMs: 10 },
     ],
@@ -29,10 +29,23 @@ test("完整动作集合 round-trip", () => {
 
 test("表单边界校验", () => {
   assert.throws(() => validateConfig({ enabled: true, repeatIntervalMs: 0, actions: [] }), /循环周期/);
-  assert.throws(() => validateConfig({ enabled: true, repeatIntervalMs: 1, actions: [{ type: "move", x: 128, y: 0, wheel: 0, pan: 0, durationMs: 0 }] }), /X/);
+  assert.throws(() => validateConfig({ enabled: true, repeatIntervalMs: 1, actions: [{ type: "move", x: 501, y: 0, wheel: 0, pan: 0, durationMs: 0 }] }), /X/);
   assert.throws(() => validateConfig({ enabled: true, repeatIntervalMs: 1, actions: [{ type: "move", x: 0, y: 0, wheel: 0, pan: 0, durationMs: 60001 }] }), /移动时长/);
   assert.throws(() => validateConfig({ enabled: true, repeatIntervalMs: 1, actions: Array.from({ length: 33 }, () => ({ type: "delay", durationMs: 1 })) }), /动作数量/);
   assert.doesNotThrow(() => validateConfig({ enabled: false, repeatIntervalMs: 1, actions: [] }));
+});
+
+test("识别受指针加速影响的异速往返动作", () => {
+  const base = { enabled: true, repeatIntervalMs: 1000 };
+  assert.equal(hasAccelerationSensitiveReturn({ ...base, actions: [
+    { type: "move", x: 127, y: 0, wheel: 0, pan: 0, durationMs: 500 },
+    { type: "delay", durationMs: 500 },
+    { type: "move", x: -127, y: 0, wheel: 0, pan: 0, durationMs: 0 },
+  ] }), true);
+  assert.equal(hasAccelerationSensitiveReturn({ ...base, actions: [
+    { type: "move", x: 500, y: 0, wheel: 0, pan: 0, durationMs: 500 },
+    { type: "move", x: -500, y: 0, wheel: 0, pan: 0, durationMs: 500 },
+  ] }), false);
 });
 
 test("协议帧编码与响应事务校验", () => {

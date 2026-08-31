@@ -1,4 +1,4 @@
-import { Command, HidPilotClient, USB_PRODUCT_ID, USB_VENDOR_ID, VENDOR_USAGE, VENDOR_USAGE_PAGE, defaultConfig, validateConfig } from "./protocol.js";
+import { Command, HidPilotClient, USB_PRODUCT_ID, USB_VENDOR_ID, VENDOR_USAGE, VENDOR_USAGE_PAGE, defaultConfig, hasAccelerationSensitiveReturn, validateConfig } from "./protocol.js";
 
 const elements = Object.fromEntries([...document.querySelectorAll("[id]")].map((element) => [element.id, element]));
 let client = null;
@@ -27,7 +27,7 @@ function renderAction(action, index) {
   const labels = { delay: "延时", move: "相对鼠标", mouseClick: "鼠标点击", keyboardClick: "键盘组合键" };
   let fields = "";
   if (action.type === "delay") fields = numberField("时长 ms", "durationMs", action.durationMs, 1, 60000);
-  if (action.type === "move") fields = [numberField("X", "x", action.x, -127, 127), numberField("Y", "y", action.y, -127, 127), numberField("滚轮", "wheel", action.wheel, -127, 127), numberField("横向", "pan", action.pan, -127, 127), numberField("移动时长 ms", "durationMs", action.durationMs, 0, 60000)].join("");
+  if (action.type === "move") fields = [numberField("X 总位移", "x", action.x, -500, 500), numberField("Y 总位移", "y", action.y, -500, 500), numberField("滚轮", "wheel", action.wheel, -127, 127), numberField("横向", "pan", action.pan, -127, 127), numberField("移动时长 ms", "durationMs", action.durationMs, 0, 60000)].join("");
   if (action.type === "mouseClick") fields = [numberField("按钮掩码", "buttons", action.buttons, 1, 31), numberField("按住 ms", "holdMs", action.holdMs, 10, 1000)].join("");
   if (action.type === "keyboardClick") fields = [numberField("修饰键", "modifiers", action.modifiers, 0, 255), numberField("HID Usage", "usage", action.usage, 1, 255), numberField("按住 ms", "holdMs", action.holdMs, 10, 1000)].join("");
   row.innerHTML = `<div class="action-title"><strong>${labels[action.type]}</strong><span>动作 ${index + 1}</span></div><div class="action-fields">${fields}</div><div class="action-buttons"><button data-action="up" title="上移">↑</button><button data-action="down" title="下移">↓</button><button data-action="delete" title="删除">删除</button></div>`;
@@ -60,6 +60,7 @@ function risky(config) {
 }
 
 async function safetyCountdown(config) {
+  if (hasAccelerationSensitiveReturn(config) && !window.confirm("检测到等量反向移动使用了不同的移动时长。操作系统指针加速会导致屏幕往返距离不同；如需回到原位，请把正反动作设为相同移动时长。仍要继续？")) throw new Error("已取消操作");
   if (!risky(config)) return;
   if (!window.confirm("此配置包含点击或键盘动作，可能触发当前应用中的操作。确认继续？")) throw new Error("已取消操作");
   for (let seconds = 3; seconds > 0; seconds -= 1) {
