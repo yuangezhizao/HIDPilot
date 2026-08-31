@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>HIDPilot 配置器</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div>
+          <p class="eyebrow">XIAO RP2350 · WebHID</p>
+          <h1>HIDPilot 配置器</h1>
+          <p>编辑键鼠动作序列，先试运行，再临时应用或保存到设备 Flash。</p>
+        </div>
+        <button id="connect" class="primary">连接设备</button>
+      </header>
+
+      <section class="status-grid" aria-live="polite">
+        <article><span>连接</span><strong id="connection">未连接</strong></article>
+        <article><span>固件 / 协议</span><strong id="version">—</strong></article>
+        <article><span>运行状态</span><strong id="runtime">—</strong></article>
+        <article><span>已完成轮次</span><strong id="runs">—</strong></article>
+      </section>
+
+      <p id="notice" class="notice">请使用桌面版 Chrome 或 Edge，并通过 localhost 打开此页面。</p>
+
+      <section class="panel">
+        <div class="settings">
+          <label class="toggle"><input id="enabled" type="checkbox" checked><span>启用周期执行</span></label>
+          <label>循环周期（ms）<input id="interval" type="number" min="1" max="86400000" step="1" value="55000"></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div><p class="eyebrow">最多 32 项</p><h2>动作序列</h2></div>
+          <select id="new-action" aria-label="新增动作类型">
+            <option value="move">相对鼠标移动</option>
+            <option value="delay">延时</option>
+            <option value="mouseClick">鼠标点击</option>
+            <option value="keyboardClick">键盘组合键点击</option>
+          </select>
+          <button id="add">添加动作</button>
+        </div>
+        <div id="actions" class="actions"></div>
+      </section>
+
+      <section class="panel controls">
+        <div>
+          <h2>执行与保存</h2>
+          <p>“临时应用”仅保留到下次重启；“保存到 Flash”采用双槽掉电保护。</p>
+        </div>
+        <div class="button-row">
+          <button id="refresh">从设备读取</button>
+          <button id="run">单次试运行</button>
+          <button id="apply">临时应用</button>
+          <button id="save" class="primary">保存到 Flash</button>
+          <button id="pause">持久化暂停</button>
+          <button id="restore" class="danger">恢复默认</button>
+        </div>
+      </section>
+
+      <section class="panel controls">
+        <div><h2>设备维护</h2><p>重启会短暂断开 WebHID；BOOTSEL 用于重新烧录 UF2。</p></div>
+        <div class="button-row"><button id="reboot">重启应用</button><button id="bootsel">重启到 BOOTSEL</button></div>
+      </section>
+
+      <footer>相对移动单位不等于屏幕像素，实际位移受操作系统指针加速影响。Safari 与 Firefox 当前不支持 WebHID。</footer>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
