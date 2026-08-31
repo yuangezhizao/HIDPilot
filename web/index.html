@@ -2,16 +2,14 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
     <title>HIDPilot 配置器</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main>
       <header class="hero">
-        <h1>HIDPilot XIAO RP2350 配置器</h1>
-        <div class="hero-line"><button id="connect">连接设备</button><span>通过 WebHID 编辑键鼠动作序列</span></div>
+        <h3>HIDPilot XIAO RP2350 配置器</h3>
+        <div class="hero-line"><input id="connect" type="button" value="连接设备"> <span>通过 WebHID 编辑键鼠动作序列</span></div>
       </header>
 
       <section class="status-grid" aria-live="polite">
@@ -40,7 +38,7 @@
             <option value="mouseClick">鼠标点击</option>
             <option value="keyboardClick">键盘组合键点击</option>
           </select>
-          <button id="add">添加动作</button>
+          <input id="add" type="button" value="添加动作">
         </div>
         <div id="actions" class="actions"></div>
       </section>
@@ -55,24 +53,25 @@
           </details>
         </div>
         <div class="button-row">
-          <button id="refresh">从设备读取</button>
-          <button id="run">单次试运行</button>
-          <button id="apply">临时应用</button>
-          <button id="save">保存到 Flash</button>
-          <button id="pause">暂停并保存到 Flash</button>
-          <button id="restore">恢复默认</button>
+          <input id="refresh" type="button" value="从设备读取">
+          <input id="run" type="button" value="单次试运行">
+          <input id="apply" type="button" value="临时应用">
+          <input id="save" type="button" value="保存到 Flash">
+          <input id="pause" type="button" value="暂停并保存到 Flash">
+          <input id="restore" type="button" value="恢复默认">
         </div>
       </section>
 
       <section class="panel controls">
         <div><h2>4. 设备维护</h2><p>重启会短暂断开 WebHID；BOOTSEL 用于重新烧录 UF2。</p></div>
-        <div class="button-row"><button id="reboot">重启应用</button><button id="bootsel">重启到 BOOTSEL</button></div>
+        <div class="button-row"><input id="reboot" type="button" value="重启应用"><input id="bootsel" type="button" value="重启到 BOOTSEL"></div>
       </section>
 
       <footer>相对移动单位不等于屏幕像素，实际位移受操作系统指针加速影响。Safari 与 Firefox 当前不支持 WebHID。</footer>
 
+      <hr>
       <section class="log-section" aria-labelledby="log-heading">
-        <div class="log-heading"><h2 id="log-heading">5. 操作日志</h2><button id="clear-log" type="button">清空日志</button></div>
+        <div class="log-heading"><h2 id="log-heading">5. 操作日志</h2><input id="clear-log" type="button" value="清空日志"></div>
         <div id="activity-log" class="activity-log" role="log" aria-live="polite" aria-relevant="additions"></div>
       </section>
     </main>
