@@ -31,6 +31,7 @@ typedef struct {
             int8_t y;
             int8_t wheel;
             int8_t pan;
+            uint16_t duration_ms;
         } move;
         struct {
             uint8_t buttons;

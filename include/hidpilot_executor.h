@@ -19,6 +19,7 @@ typedef enum {
     HIDPILOT_EXECUTOR_NEUTRAL_MOUSE,
     HIDPILOT_EXECUTOR_WAITING,
     HIDPILOT_EXECUTOR_ACTION,
+    HIDPILOT_EXECUTOR_MOUSE_MOVE,
     HIDPILOT_EXECUTOR_DELAY,
     HIDPILOT_EXECUTOR_MOUSE_RELEASE,
     HIDPILOT_EXECUTOR_KEYBOARD_RELEASE,
@@ -33,13 +34,26 @@ typedef struct {
     uint32_t next_cycle_ms;
     uint32_t completed_runs;
     uint32_t error_count;
+    uint32_t move_start_ms;
+    int16_t move_sent_x;
+    int16_t move_sent_y;
+    int16_t move_sent_wheel;
+    int16_t move_sent_pan;
+    uint16_t move_duration_ms;
+    uint16_t move_step_count;
+    uint16_t move_step_index;
     uint8_t action_index;
+    int8_t move_target_x;
+    int8_t move_target_y;
+    int8_t move_target_wheel;
+    int8_t move_target_pan;
     bool mounted;
     bool suspended;
     bool remote_wakeup_allowed;
     bool wake_requested;
     bool pending_run;
     bool one_shot;
+    bool activity_active;
 } hidpilot_executor_t;
 
 void hidpilot_executor_init(hidpilot_executor_t *executor, const hidpilot_config_t *config, hidpilot_executor_io_t io);
@@ -51,5 +65,6 @@ void hidpilot_executor_suspend(hidpilot_executor_t *executor, bool remote_wakeup
 void hidpilot_executor_resume(hidpilot_executor_t *executor, uint32_t now_ms);
 void hidpilot_executor_tick(hidpilot_executor_t *executor, uint32_t now_ms);
 bool hidpilot_executor_busy(const hidpilot_executor_t *executor);
+bool hidpilot_executor_activity_active(const hidpilot_executor_t *executor);
 
 #endif

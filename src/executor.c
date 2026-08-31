@@ -10,6 +10,7 @@ static void begin_neutral_release(hidpilot_executor_t *executor, bool pending_ru
     executor->state = executor->mounted && !executor->suspended ? HIDPILOT_EXECUTOR_NEUTRAL_KEYBOARD : HIDPILOT_EXECUTOR_DETACHED;
     executor->pending_run = pending_run;
     executor->action_index = 0u;
+    executor->activity_active = false;
 }
 
 void hidpilot_executor_init(hidpilot_executor_t *executor, const hidpilot_config_t *config, hidpilot_executor_io_t io) {
@@ -57,6 +58,7 @@ void hidpilot_executor_unmount(hidpilot_executor_t *executor) {
     executor->one_shot = false;
     executor->state = HIDPILOT_EXECUTOR_DETACHED;
     executor->action_index = 0u;
+    executor->activity_active = false;
 }
 
 void hidpilot_executor_suspend(hidpilot_executor_t *executor, bool remote_wakeup_allowed) {
@@ -66,6 +68,7 @@ void hidpilot_executor_suspend(hidpilot_executor_t *executor, bool remote_wakeup
     executor->pending_run = executor->pending_run || executor->state != HIDPILOT_EXECUTOR_WAITING;
     executor->state = HIDPILOT_EXECUTOR_DETACHED;
     executor->action_index = 0u;
+    executor->activity_active = false;
 }
 
 void hidpilot_executor_resume(hidpilot_executor_t *executor, uint32_t now_ms) {
@@ -96,7 +99,74 @@ static void start_cycle(hidpilot_executor_t *executor, uint32_t now_ms) {
     if (!executor->one_shot) {
         executor->next_cycle_ms = now_ms + executor->run_config.repeat_interval_ms;
     }
+    executor->activity_active = true;
     executor->state = HIDPILOT_EXECUTOR_ACTION;
+}
+
+static uint16_t move_magnitude(int8_t value) {
+    const int16_t wide_value = value;
+    return (uint16_t)(wide_value < 0 ? -wide_value : wide_value);
+}
+
+static void begin_mouse_move(hidpilot_executor_t *executor, const hidpilot_action_t *action, uint32_t now_ms) {
+    uint16_t maximum = move_magnitude(action->value.move.x);
+    const uint16_t y = move_magnitude(action->value.move.y);
+    const uint16_t wheel = move_magnitude(action->value.move.wheel);
+    const uint16_t pan = move_magnitude(action->value.move.pan);
+    if (y > maximum) maximum = y;
+    if (wheel > maximum) maximum = wheel;
+    if (pan > maximum) maximum = pan;
+    if (maximum == 0u) {
+        executor->deadline_ms = now_ms + action->value.move.duration_ms;
+        ++executor->action_index;
+        executor->state = action->value.move.duration_ms == 0u ? HIDPILOT_EXECUTOR_ACTION : HIDPILOT_EXECUTOR_DELAY;
+        return;
+    }
+
+    executor->move_start_ms = now_ms;
+    executor->move_duration_ms = action->value.move.duration_ms;
+    executor->move_step_count = maximum < action->value.move.duration_ms ? maximum : action->value.move.duration_ms;
+    executor->move_step_index = 0u;
+    executor->move_sent_x = 0;
+    executor->move_sent_y = 0;
+    executor->move_sent_wheel = 0;
+    executor->move_sent_pan = 0;
+    executor->move_target_x = action->value.move.x;
+    executor->move_target_y = action->value.move.y;
+    executor->move_target_wheel = action->value.move.wheel;
+    executor->move_target_pan = action->value.move.pan;
+    ++executor->action_index;
+    executor->state = HIDPILOT_EXECUTOR_MOUSE_MOVE;
+}
+
+static void run_mouse_move(hidpilot_executor_t *executor, uint32_t now_ms) {
+    const uint16_t next_step = (uint16_t)(executor->move_step_index + 1u);
+    const uint32_t offset_ms = ((uint32_t)next_step * executor->move_duration_ms + executor->move_step_count - 1u) /
+                               executor->move_step_count;
+    if (!time_reached(now_ms, executor->move_start_ms + offset_ms)) {
+        return;
+    }
+
+    const int16_t target_x = (int16_t)(((int32_t)executor->move_target_x * next_step) / executor->move_step_count);
+    const int16_t target_y = (int16_t)(((int32_t)executor->move_target_y * next_step) / executor->move_step_count);
+    const int16_t target_wheel = (int16_t)(((int32_t)executor->move_target_wheel * next_step) / executor->move_step_count);
+    const int16_t target_pan = (int16_t)(((int32_t)executor->move_target_pan * next_step) / executor->move_step_count);
+    const int8_t delta_x = (int8_t)(target_x - executor->move_sent_x);
+    const int8_t delta_y = (int8_t)(target_y - executor->move_sent_y);
+    const int8_t delta_wheel = (int8_t)(target_wheel - executor->move_sent_wheel);
+    const int8_t delta_pan = (int8_t)(target_pan - executor->move_sent_pan);
+    if (!executor->io.send_mouse(executor->io.context, 0u, delta_x, delta_y, delta_wheel, delta_pan)) {
+        return;
+    }
+
+    executor->move_sent_x = target_x;
+    executor->move_sent_y = target_y;
+    executor->move_sent_wheel = target_wheel;
+    executor->move_sent_pan = target_pan;
+    executor->move_step_index = next_step;
+    if (next_step == executor->move_step_count) {
+        executor->state = HIDPILOT_EXECUTOR_ACTION;
+    }
 }
 
 static void run_action(hidpilot_executor_t *executor, uint32_t now_ms) {
@@ -112,9 +182,13 @@ static void run_action(hidpilot_executor_t *executor, uint32_t now_ms) {
             executor->state = HIDPILOT_EXECUTOR_DELAY;
             break;
         case HIDPILOT_ACTION_MOUSE_MOVE:
-            if (executor->io.send_mouse(executor->io.context, 0u, action->value.move.x, action->value.move.y,
-                                        action->value.move.wheel, action->value.move.pan)) {
-                ++executor->action_index;
+            if (action->value.move.duration_ms == 0u) {
+                if (executor->io.send_mouse(executor->io.context, 0u, action->value.move.x, action->value.move.y,
+                                            action->value.move.wheel, action->value.move.pan)) {
+                    ++executor->action_index;
+                }
+            } else {
+                begin_mouse_move(executor, action, now_ms);
             }
             break;
         case HIDPILOT_ACTION_MOUSE_CLICK:
@@ -169,6 +243,7 @@ void hidpilot_executor_tick(hidpilot_executor_t *executor, uint32_t now_ms) {
                 if (executor->pending_run) {
                     start_cycle(executor, now_ms);
                 } else {
+                    executor->activity_active = false;
                     executor->state = HIDPILOT_EXECUTOR_WAITING;
                 }
             }
@@ -181,6 +256,9 @@ void hidpilot_executor_tick(hidpilot_executor_t *executor, uint32_t now_ms) {
             break;
         case HIDPILOT_EXECUTOR_ACTION:
             run_action(executor, now_ms);
+            break;
+        case HIDPILOT_EXECUTOR_MOUSE_MOVE:
+            run_mouse_move(executor, now_ms);
             break;
         case HIDPILOT_EXECUTOR_DELAY:
             if (time_reached(now_ms, executor->deadline_ms)) {
@@ -205,9 +283,14 @@ void hidpilot_executor_tick(hidpilot_executor_t *executor, uint32_t now_ms) {
 }
 
 bool hidpilot_executor_busy(const hidpilot_executor_t *executor) {
-    if (executor->one_shot) {
+    if (executor->one_shot || executor->activity_active) {
         return true;
     }
-    return executor->state == HIDPILOT_EXECUTOR_ACTION || executor->state == HIDPILOT_EXECUTOR_DELAY ||
+    return executor->state == HIDPILOT_EXECUTOR_ACTION || executor->state == HIDPILOT_EXECUTOR_MOUSE_MOVE ||
+           executor->state == HIDPILOT_EXECUTOR_DELAY ||
            executor->state == HIDPILOT_EXECUTOR_MOUSE_RELEASE || executor->state == HIDPILOT_EXECUTOR_KEYBOARD_RELEASE;
+}
+
+bool hidpilot_executor_activity_active(const hidpilot_executor_t *executor) {
+    return executor->activity_active;
 }

@@ -51,6 +51,9 @@ hidpilot_config_result_t hidpilot_config_validate(const hidpilot_config_t *confi
                 }
                 break;
             case HIDPILOT_ACTION_MOUSE_MOVE:
+                if (action->value.move.duration_ms > 60000u) {
+                    return HIDPILOT_CONFIG_ERR_ACTION_VALUE;
+                }
                 break;
             case HIDPILOT_ACTION_MOUSE_CLICK:
                 if (action->value.mouse_click.buttons == 0u || (action->value.mouse_click.buttons & 0xe0u) != 0u ||
@@ -109,13 +112,14 @@ hidpilot_config_result_t hidpilot_config_decode(hidpilot_config_t *config, const
                 action->value.delay.duration_ms = read_u32_le(&wire[4]);
                 break;
             case HIDPILOT_ACTION_MOUSE_MOVE:
-                if (wire[5] != 0u || wire[6] != 0u || wire[7] != 0u) {
+                if (wire[7] != 0u) {
                     return HIDPILOT_CONFIG_ERR_RESERVED;
                 }
                 action->value.move.x = (int8_t)wire[1];
                 action->value.move.y = (int8_t)wire[2];
                 action->value.move.wheel = (int8_t)wire[3];
                 action->value.move.pan = (int8_t)wire[4];
+                action->value.move.duration_ms = read_u16_le(&wire[5]);
                 break;
             case HIDPILOT_ACTION_MOUSE_CLICK:
                 if (wire[4] != 0u || wire[5] != 0u || wire[6] != 0u || wire[7] != 0u) {
@@ -165,6 +169,7 @@ size_t hidpilot_config_encode(const hidpilot_config_t *config, uint8_t *data, si
                 wire[2] = (uint8_t)action->value.move.y;
                 wire[3] = (uint8_t)action->value.move.wheel;
                 wire[4] = (uint8_t)action->value.move.pan;
+                write_u16_le(&wire[5], action->value.move.duration_ms);
                 break;
             case HIDPILOT_ACTION_MOUSE_CLICK:
                 wire[1] = action->value.mouse_click.buttons;

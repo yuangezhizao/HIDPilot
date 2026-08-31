@@ -22,9 +22,18 @@ static bool response_pending;
 static bool reboot_pending;
 static bool reboot_to_bootsel;
 static uint32_t reboot_deadline_ms;
+static bool activity_led_on;
 
 static uint32_t now_ms(void) {
     return to_ms_since_boot(get_absolute_time());
+}
+
+static void set_activity_led(bool on) {
+    if (activity_led_on == on) {
+        return;
+    }
+    gpio_put(PICO_DEFAULT_LED_PIN, on ? 0u : 1u);
+    activity_led_on = on;
 }
 
 static bool send_keyboard(void *context, uint8_t modifiers, uint8_t usage) {
@@ -68,6 +77,9 @@ static void schedule_reboot(void *context, bool bootsel) {
 
 int main(void) {
     stdio_init_all();
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_put(PICO_DEFAULT_LED_PIN, 1u);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
     hidpilot_flash_store_load(&flash_store, &active_config);
     const hidpilot_executor_io_t executor_io = {
         .context = NULL,
@@ -90,6 +102,7 @@ int main(void) {
         tud_task();
         const uint32_t current_ms = now_ms();
         hidpilot_executor_tick(&executor, current_ms);
+        set_activity_led(hidpilot_executor_activity_active(&executor));
         if (response_pending && tud_hid_n_ready(HIDPILOT_HID_INSTANCE_CONFIG) &&
             tud_hid_n_report(HIDPILOT_HID_INSTANCE_CONFIG, 0u, pending_response, sizeof(pending_response))) {
             response_pending = false;

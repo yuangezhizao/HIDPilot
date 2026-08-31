@@ -20,6 +20,7 @@ private enum Command: UInt8 {
     case applySave = 0x15
     case restoreDefault = 0x16
     case rebootApplication = 0x17
+    case rebootBootsel = 0x18
 }
 
 private func readUInt16(_ data: [UInt8], _ offset: Int) -> UInt16 {
@@ -75,6 +76,23 @@ private func harmlessPersistentConfig() -> [UInt8] {
     data[5] = 0xfd
     data[13] = 20
     data[29] = UInt8(bitPattern: -20)
+    return data
+}
+
+private func pacedConfig() -> [UInt8] {
+    var data = [UInt8](repeating: 0, count: 28)
+    data[0] = 1
+    data[2] = 2
+    data[4] = 0x88
+    data[5] = 0x13
+    data[12] = 2
+    data[13] = 40
+    data[17] = 0xd0
+    data[18] = 0x07
+    data[20] = 2
+    data[21] = UInt8(bitPattern: -40)
+    data[25] = 0xd0
+    data[26] = 0x07
     return data
 }
 
@@ -294,6 +312,36 @@ private func sampleRunOnce(_ probe: HIDProbe, config: [UInt8]) throws {
     print(String(format: "run_once baseline_x=%.1f min_x=%.1f min_ms=%.1f max_x=%.1f max_ms=%.1f delta_x=%.1f hold_ms=%.1f final_x=%.1f", baseline.x, minimumX, minimumAt * 1000, maximumX, maximumAt * 1000, maximumX - baseline.x, holdMilliseconds, final.x))
 }
 
+private func samplePacedRunOnce(_ probe: HIDProbe) throws {
+    let displayBounds = CGDisplayBounds(CGMainDisplayID())
+    let center = CGPoint(x: displayBounds.midX, y: displayBounds.midY)
+    CGWarpMouseCursorPosition(center)
+    Thread.sleep(forTimeInterval: 1.0)
+    let baseline = CGEvent(source: nil)?.location ?? center
+    let stageTransaction = try probe.prepareStage(pacedConfig())
+    let start = Date()
+    let requestTransaction = probe.beginRequestAsynchronously(.runOnce, transaction: stageTransaction)
+    var maximumX = baseline.x
+    var maximumAt: TimeInterval = 0
+    var lastX = baseline.x
+    var lastChangeAt: TimeInterval = 0
+    while Date().timeIntervalSince(start) < 5.0 {
+        let elapsed = Date().timeIntervalSince(start)
+        let location = CGEvent(source: nil)?.location ?? baseline
+        if location.x > maximumX { maximumX = location.x; maximumAt = elapsed }
+        if abs(location.x - lastX) > 0.01 { lastChangeAt = elapsed; lastX = location.x }
+        CFRunLoopRunInMode(CFRunLoopMode.defaultMode, 0.001, true)
+    }
+    _ = try probe.finishRequest(.runOnce, transaction: requestTransaction)
+    let final = CGEvent(source: nil)?.location ?? baseline
+    CGWarpMouseCursorPosition(center)
+    print(String(format: "paced_run baseline_x=%.1f max_x=%.1f max_at_ms=%.1f last_change_ms=%.1f final_x=%.1f", baseline.x, maximumX, maximumAt * 1000, lastChangeAt * 1000, final.x))
+    guard maximumX > baseline.x + 5 else { throw ProbeError("缓速动作未产生可观测正向位移") }
+    guard maximumAt > 1.5, maximumAt < 2.6 else { throw ProbeError("正向缓速移动时长不在预期范围") }
+    guard lastChangeAt > 3.5, lastChangeAt < 4.8 else { throw ProbeError("反向缓速移动时长不在预期范围") }
+    guard abs(final.x - baseline.x) < 5 else { throw ProbeError("缓速往返动作结束后未回到起点") }
+}
+
 private func runAcceptance() throws {
     var probe: HIDProbe? = try HIDProbe()
     print("initial \(statusSummary(try probe!.request(.status)))")
@@ -331,6 +379,23 @@ private func runAcceptance() throws {
     print("final \(statusSummary(finalStatus))")
 }
 
+private func verifyPacedPersistence() throws {
+    var probe: HIDProbe? = try HIDProbe()
+    let paced = pacedConfig()
+    try probe!.stage(paced, finalCommand: .applySave)
+    _ = try probe!.request(.rebootApplication)
+    probe = nil
+    probe = try waitForReboot()
+    guard try probe!.readConfig() == paced else { throw ProbeError("移动时长配置重启后未保持") }
+    print("paced_persisted \(statusSummary(try probe!.request(.status)))")
+    _ = try probe!.request(.restoreDefault)
+    _ = try probe!.request(.rebootApplication)
+    probe = nil
+    probe = try waitForReboot()
+    guard try probe!.readConfig() == defaultConfig() else { throw ProbeError("持久化验收后未恢复默认配置") }
+    print("default_restored \(statusSummary(try probe!.request(.status)))")
+}
+
 private func monitorCycles(_ probe: HIDProbe) throws {
     let initialStatus = try probe.request(.status)
     var previousRuns = readUInt32(initialStatus, 12)
@@ -363,6 +428,16 @@ do {
     } else if mode == "monitor" {
         let probe = try HIDProbe()
         try monitorCycles(probe)
+    } else if mode == "paced" {
+        let probe = try HIDProbe()
+        try samplePacedRunOnce(probe)
+        print(statusSummary(try probe.request(.status)))
+    } else if mode == "paced-persist" {
+        try verifyPacedPersistence()
+    } else if mode == "bootsel" {
+        let probe = try HIDProbe()
+        _ = try probe.request(.rebootBootsel)
+        print("bootsel_requested")
     } else {
         let probe = try HIDProbe()
         print(statusSummary(try probe.request(.status)))

@@ -48,6 +48,7 @@ export function validateConfig(config) {
       integerInRange(action.y, -127, 127, `${prefix} Y`);
       integerInRange(action.wheel, -127, 127, `${prefix} 滚轮`);
       integerInRange(action.pan, -127, 127, `${prefix} 横向滚轮`);
+      integerInRange(action.durationMs, 0, 60000, `${prefix} 移动时长`);
     }
     if (action.type === "mouseClick") {
       integerInRange(action.buttons, 1, 31, `${prefix} 按钮掩码`);
@@ -67,9 +68,9 @@ export function defaultConfig() {
     enabled: true,
     repeatIntervalMs: 55000,
     actions: [
-      { type: "move", x: 100, y: 0, wheel: 0, pan: 0 },
+      { type: "move", x: 100, y: 0, wheel: 0, pan: 0, durationMs: 0 },
       { type: "delay", durationMs: 200 },
-      { type: "move", x: -100, y: 0, wheel: 0, pan: 0 },
+      { type: "move", x: -100, y: 0, wheel: 0, pan: 0, durationMs: 0 },
     ],
   };
 }
@@ -93,6 +94,7 @@ export function encodeConfig(config) {
       view.setInt8(offset + 2, action.y);
       view.setInt8(offset + 3, action.wheel);
       view.setInt8(offset + 4, action.pan);
+      view.setUint16(offset + 5, action.durationMs, true);
     } else if (action.type === "mouseClick") {
       bytes[offset] = 3;
       bytes[offset + 1] = action.buttons;
@@ -123,8 +125,8 @@ export function decodeConfig(data) {
       if (wire[1] || wire[2] || wire[3]) throw new Error("延时动作保留字段非零");
       config.actions.push({ type: "delay", durationMs: view.getUint32(offset + 4, true) });
     } else if (wire[0] === 2) {
-      if (wire[5] || wire[6] || wire[7]) throw new Error("移动动作保留字段非零");
-      config.actions.push({ type: "move", x: view.getInt8(offset + 1), y: view.getInt8(offset + 2), wheel: view.getInt8(offset + 3), pan: view.getInt8(offset + 4) });
+      if (wire[7]) throw new Error("移动动作保留字段非零");
+      config.actions.push({ type: "move", x: view.getInt8(offset + 1), y: view.getInt8(offset + 2), wheel: view.getInt8(offset + 3), pan: view.getInt8(offset + 4), durationMs: view.getUint16(offset + 5, true) });
     } else if (wire[0] === 3) {
       if (wire[4] || wire[5] || wire[6] || wire[7]) throw new Error("点击动作保留字段非零");
       config.actions.push({ type: "mouseClick", buttons: wire[1], holdMs: view.getUint16(offset + 2, true) });

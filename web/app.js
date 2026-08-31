@@ -6,7 +6,7 @@ let currentDevice = null;
 
 const actionDefaults = {
   delay: () => ({ type: "delay", durationMs: 200 }),
-  move: () => ({ type: "move", x: 0, y: 0, wheel: 0, pan: 0 }),
+  move: () => ({ type: "move", x: 0, y: 0, wheel: 0, pan: 0, durationMs: 0 }),
   mouseClick: () => ({ type: "mouseClick", buttons: 1, holdMs: 50 }),
   keyboardClick: () => ({ type: "keyboardClick", modifiers: 0, usage: 4, holdMs: 50 }),
 };
@@ -27,7 +27,7 @@ function renderAction(action, index) {
   const labels = { delay: "延时", move: "相对鼠标", mouseClick: "鼠标点击", keyboardClick: "键盘组合键" };
   let fields = "";
   if (action.type === "delay") fields = numberField("时长 ms", "durationMs", action.durationMs, 1, 60000);
-  if (action.type === "move") fields = [numberField("X", "x", action.x, -127, 127), numberField("Y", "y", action.y, -127, 127), numberField("滚轮", "wheel", action.wheel, -127, 127), numberField("横向", "pan", action.pan, -127, 127)].join("");
+  if (action.type === "move") fields = [numberField("X", "x", action.x, -127, 127), numberField("Y", "y", action.y, -127, 127), numberField("滚轮", "wheel", action.wheel, -127, 127), numberField("横向", "pan", action.pan, -127, 127), numberField("移动时长 ms", "durationMs", action.durationMs, 0, 60000)].join("");
   if (action.type === "mouseClick") fields = [numberField("按钮掩码", "buttons", action.buttons, 1, 31), numberField("按住 ms", "holdMs", action.holdMs, 10, 1000)].join("");
   if (action.type === "keyboardClick") fields = [numberField("修饰键", "modifiers", action.modifiers, 0, 255), numberField("HID Usage", "usage", action.usage, 1, 255), numberField("按住 ms", "holdMs", action.holdMs, 10, 1000)].join("");
   row.innerHTML = `<div class="action-title"><strong>${labels[action.type]}</strong><span>动作 ${index + 1}</span></div><div class="action-fields">${fields}</div><div class="action-buttons"><button data-action="up" title="上移">↑</button><button data-action="down" title="下移">↓</button><button data-action="delete" title="删除">删除</button></div>`;
