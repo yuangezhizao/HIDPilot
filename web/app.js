@@ -1,4 +1,5 @@
 import { Command, HidPilotClient, USB_PRODUCT_ID, USB_VENDOR_ID, VENDOR_USAGE, VENDOR_USAGE_PAGE, defaultConfig, hasAccelerationSensitiveReturn, validateConfig } from "./protocol.js";
+import { millisecondsToSeconds, secondsToMilliseconds } from "./units.js";
 
 const elements = Object.fromEntries([...document.querySelectorAll("[id]")].map((element) => [element.id, element]));
 let client = null;
@@ -20,23 +21,27 @@ function numberField(label, name, value, minimum, maximum) {
   return `<label class="field">${label}<input data-field="${name}" type="number" min="${minimum}" max="${maximum}" step="1" value="${value}"></label>`;
 }
 
+function secondsField(label, name, valueMs, minimumMs, maximumMs) {
+  return `<label class="field">${label}<input data-field="${name}" data-unit="seconds" data-minimum-ms="${minimumMs}" data-maximum-ms="${maximumMs}" data-label="${label}" type="number" min="${millisecondsToSeconds(minimumMs)}" max="${millisecondsToSeconds(maximumMs)}" step="0.001" value="${millisecondsToSeconds(valueMs)}"></label>`;
+}
+
 function renderAction(action, index) {
   const row = document.createElement("div");
   row.className = "action";
   row.dataset.type = action.type;
   const labels = { delay: "延时", move: "相对鼠标", mouseClick: "鼠标点击", keyboardClick: "键盘组合键" };
   let fields = "";
-  if (action.type === "delay") fields = numberField("时长 ms", "durationMs", action.durationMs, 1, 60000);
-  if (action.type === "move") fields = [numberField("X 总位移", "x", action.x, -500, 500), numberField("Y 总位移", "y", action.y, -500, 500), numberField("滚轮", "wheel", action.wheel, -127, 127), numberField("横向", "pan", action.pan, -127, 127), numberField("移动时长 ms", "durationMs", action.durationMs, 0, 60000)].join("");
-  if (action.type === "mouseClick") fields = [numberField("按钮掩码", "buttons", action.buttons, 1, 31), numberField("按住 ms", "holdMs", action.holdMs, 10, 1000)].join("");
-  if (action.type === "keyboardClick") fields = [numberField("修饰键", "modifiers", action.modifiers, 0, 255), numberField("HID Usage", "usage", action.usage, 1, 255), numberField("按住 ms", "holdMs", action.holdMs, 10, 1000)].join("");
+  if (action.type === "delay") fields = secondsField("时长 s", "durationMs", action.durationMs, 1, 60000);
+  if (action.type === "move") fields = [numberField("X 总位移", "x", action.x, -500, 500), numberField("Y 总位移", "y", action.y, -500, 500), numberField("滚轮", "wheel", action.wheel, -127, 127), numberField("横向", "pan", action.pan, -127, 127), secondsField("移动时长 s", "durationMs", action.durationMs, 0, 60000)].join("");
+  if (action.type === "mouseClick") fields = [numberField("按钮掩码", "buttons", action.buttons, 1, 31), secondsField("按住 s", "holdMs", action.holdMs, 10, 1000)].join("");
+  if (action.type === "keyboardClick") fields = [numberField("修饰键", "modifiers", action.modifiers, 0, 255), numberField("HID Usage", "usage", action.usage, 1, 255), secondsField("按住 s", "holdMs", action.holdMs, 10, 1000)].join("");
   row.innerHTML = `<div class="action-title"><strong>${labels[action.type]}</strong><span>动作 ${index + 1}</span></div><div class="action-fields">${fields}</div><div class="action-buttons"><button data-action="up" title="上移">↑</button><button data-action="down" title="下移">↓</button><button data-action="delete" title="删除">删除</button></div>`;
   return row;
 }
 
 function setConfig(config) {
   elements.enabled.checked = config.enabled;
-  elements.interval.value = config.repeatIntervalMs;
+  elements.interval.value = millisecondsToSeconds(config.repeatIntervalMs);
   elements.actions.replaceChildren(...config.actions.map(renderAction));
   if (config.actions.length === 0) elements.actions.innerHTML = '<div class="empty">当前没有动作；启用时每个周期只更新运行计数。</div>';
 }
@@ -44,10 +49,15 @@ function setConfig(config) {
 function collectConfig() {
   const actions = [...elements.actions.querySelectorAll(".action")].map((row) => {
     const action = { type: row.dataset.type };
-    row.querySelectorAll("[data-field]").forEach((input) => { action[input.dataset.field] = Number(input.value); });
+    row.querySelectorAll("[data-field]").forEach((input) => {
+      action[input.dataset.field] = input.dataset.unit === "seconds"
+        ? secondsToMilliseconds(input.value, Number(input.dataset.minimumMs), Number(input.dataset.maximumMs), input.dataset.label)
+        : Number(input.value);
+    });
     return action;
   });
-  return validateConfig({ enabled: elements.enabled.checked, repeatIntervalMs: Number(elements.interval.value), actions });
+  const repeatIntervalMs = secondsToMilliseconds(elements.interval.value, 1, 86400000, "循环周期");
+  return validateConfig({ enabled: elements.enabled.checked, repeatIntervalMs, actions });
 }
 
 function connected() {
@@ -77,7 +87,7 @@ async function refresh() {
   elements.version.textContent = `${status.firmware} / v${status.schema}`;
   elements.runtime.textContent = `${status.flags & 1 ? "启用" : "暂停"}${status.flags & 4 ? " · 挂起" : ""}${status.flags & 8 ? " · 执行中" : ""}`;
   elements.runs.textContent = `${status.completedRuns}（错误 ${status.errors}）`;
-  setNotice(`配置已读取：${status.actionCount} 个动作，周期 ${status.repeatIntervalMs} ms，Flash 代际 ${status.generation}。`, "ok");
+  setNotice(`配置已读取：${status.actionCount} 个动作，周期 ${millisecondsToSeconds(status.repeatIntervalMs)} s，Flash 代际 ${status.generation}。`, "ok");
 }
 
 async function connect() {

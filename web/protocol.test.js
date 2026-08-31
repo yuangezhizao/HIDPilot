@@ -1,6 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Command, createFrame, crc32, decodeConfig, defaultConfig, encodeConfig, hasAccelerationSensitiveReturn, parseResponse, validateConfig } from "./protocol.js";
+import { millisecondsToSeconds, secondsToMilliseconds } from "./units.js";
+
+test("配置页在秒与整数毫秒之间无损换算", () => {
+  assert.equal(millisecondsToSeconds(55000), 55);
+  assert.equal(millisecondsToSeconds(500), 0.5);
+  assert.equal(millisecondsToSeconds(50), 0.05);
+  assert.equal(secondsToMilliseconds("55", 1, 86400000, "循环周期"), 55000);
+  assert.equal(secondsToMilliseconds("0.5", 0, 60000, "移动时长"), 500);
+  assert.equal(secondsToMilliseconds("0.05", 10, 1000, "按住时长"), 50);
+});
+
+test("配置页拒绝低于毫秒精度或超出范围的秒值", () => {
+  assert.throws(() => secondsToMilliseconds("0.0005", 0, 60000, "移动时长"), /最多支持 3 位小数/);
+  assert.throws(() => secondsToMilliseconds("60.001", 0, 60000, "移动时长"), /0–60 秒/);
+  assert.throws(() => secondsToMilliseconds("abc", 0, 60000, "移动时长"), /必须是数字/);
+});
 
 test("CRC-32/ISO-HDLC 标准向量", () => {
   assert.equal(crc32(new TextEncoder().encode("123456789")), 0xcbf43926);
