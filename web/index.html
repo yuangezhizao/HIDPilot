@@ -10,12 +10,8 @@
   <body>
     <main>
       <header class="hero">
-        <div>
-          <p class="eyebrow">XIAO RP2350 · WebHID</p>
-          <h1>HIDPilot 配置器</h1>
-          <p>编辑键鼠动作序列，先试运行，再临时应用或保存到设备 Flash。</p>
-        </div>
-        <button id="connect">连接设备</button>
+        <h1>HIDPilot XIAO RP2350 配置器</h1>
+        <div class="hero-line"><button id="connect">连接设备</button><span>通过 WebHID 编辑键鼠动作序列</span></div>
       </header>
 
       <section class="status-grid" aria-live="polite">
@@ -28,6 +24,7 @@
       <p id="notice" class="notice">请使用桌面版 Chrome 或 Edge，并通过 localhost 打开此页面。</p>
 
       <section class="panel">
+        <h2>1. 周期设置</h2>
         <div class="settings">
           <label class="toggle"><input id="enabled" type="checkbox" checked><span>启用周期执行</span></label>
           <label>循环周期（s）<input id="interval" type="number" min="0.001" max="86400" step="0.001" value="55"></label>
@@ -36,7 +33,7 @@
 
       <section class="panel">
         <div class="section-heading">
-          <div><p class="eyebrow">最多 32 项</p><h2>动作序列</h2><p class="action-help">X/Y 是总 HID 位移，固件会自动拆分超过 127 的值。等距往返应使用相同移动时长，否则系统指针加速会造成屏幕距离不同。</p></div>
+          <div><h2>2. 动作序列 <small>（最多 32 项）</small></h2><p class="action-help">X/Y 是总 HID 位移，固件会自动拆分超过 127 的值。等距往返应使用相同移动时长，否则系统指针加速会造成屏幕距离不同。</p></div>
           <select id="new-action" aria-label="新增动作类型">
             <option value="move">相对鼠标移动</option>
             <option value="delay">延时</option>
@@ -50,7 +47,7 @@
 
       <section class="panel controls">
         <div>
-          <h2>执行与保存</h2>
+          <h2>3. 执行与保存</h2>
           <p>“临时应用”仅保留到下次重启；“保存到 Flash”采用双槽掉电保护。</p>
           <details class="storage-help">
             <summary>什么是双槽掉电保护？</summary>
@@ -61,21 +58,21 @@
           <button id="refresh">从设备读取</button>
           <button id="run">单次试运行</button>
           <button id="apply">临时应用</button>
-          <button id="save" class="primary">保存到 Flash</button>
+          <button id="save">保存到 Flash</button>
           <button id="pause">持久化暂停</button>
-          <button id="restore" class="danger">恢复默认</button>
+          <button id="restore">恢复默认</button>
         </div>
       </section>
 
       <section class="panel controls">
-        <div><h2>设备维护</h2><p>重启会短暂断开 WebHID；BOOTSEL 用于重新烧录 UF2。</p></div>
+        <div><h2>4. 设备维护</h2><p>重启会短暂断开 WebHID；BOOTSEL 用于重新烧录 UF2。</p></div>
         <div class="button-row"><button id="reboot">重启应用</button><button id="bootsel">重启到 BOOTSEL</button></div>
       </section>
 
       <footer>相对移动单位不等于屏幕像素，实际位移受操作系统指针加速影响。Safari 与 Firefox 当前不支持 WebHID。</footer>
 
       <section class="log-section" aria-labelledby="log-heading">
-        <div class="log-heading"><h2 id="log-heading">操作日志</h2><button id="clear-log" type="button">清空日志</button></div>
+        <div class="log-heading"><h2 id="log-heading">5. 操作日志</h2><button id="clear-log" type="button">清空日志</button></div>
         <div id="activity-log" class="activity-log" role="log" aria-live="polite" aria-relevant="additions"></div>
       </section>
     </main>
