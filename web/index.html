@@ -48,7 +48,7 @@
       <section class="panel controls">
         <div>
           <h2>3. 执行与保存</h2>
-          <p>“临时应用”仅保留到下次重启；“保存到 Flash”采用双槽掉电保护。</p>
+          <p>“临时应用”仅保留到下次重启；“保存到 Flash”保存当前启用状态；“暂停并保存到 Flash”会关闭周期执行并直接保存，无需再次点击保存。</p>
           <details class="storage-help">
             <summary>什么是双槽掉电保护？</summary>
             <p>Flash 中保留两个独立的 4 KiB 配置槽。保存时只擦写非活动槽，完整回读并通过格式、CRC 和代际校验后才切换活动槽；若中途掉电，原活动槽仍保持有效。启动时选择代际较新的有效槽，一个槽损坏时使用另一个，两槽都无效时恢复默认配置。</p>
@@ -59,7 +59,7 @@
           <button id="run">单次试运行</button>
           <button id="apply">临时应用</button>
           <button id="save">保存到 Flash</button>
-          <button id="pause">持久化暂停</button>
+          <button id="pause">暂停并保存到 Flash</button>
           <button id="restore">恢复默认</button>
         </div>
       </section>
